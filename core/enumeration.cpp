@@ -33,21 +33,18 @@ FT enumeration(const int N, const FT *R, const int rowstride, const FT *pruningv
 
     // initialize enumobj.muT
     // assumption: enumobj.muT is all-zero
-    for (int i = 0; i < N-1; ++i)
-    {
+    for (int i = 0; i < N-1; ++i) {
         FT* muTi = &enumobj.muT[i][0];
         const FT* Ri = R+(i*rowstride);
         FT Rii_inv = FT(1.0) / Ri[i];
-        for (int j = i+1; j < N; ++j)
-        {
+        for (int j = i+1; j < N; ++j) {
             // muT[i][j] = <bj,bi*> / ||bi*||^2
             muTi[j] = Ri[j] * Rii_inv;
         }
     }
 
     // initialize enumobj.risq
-    for (int i = 0; i < N; ++i)
-    {
+    for (int i = 0; i < N; ++i) {
         // risq[i] = ||bi*||^2
         enumobj.risq[i] = R[i*rowstride+i] * R[i*rowstride+i];
     }
@@ -60,8 +57,7 @@ FT enumeration(const int N, const FT *R, const int rowstride, const FT *pruningv
 		std::copy(&pruningvector[0], &pruningvector[N], &enumobj.pr[0]);
 
     // pad enumeration tree to MAX_ENUM_N dimension using virtual basis vectors of length above enumeration bound
-    for (int i = N; i < MAX_ENUM_N; ++i)
-    {
+    for (int i = N; i < MAX_ENUM_N; ++i) {
         // ensure these virtual basis vectors are never used
         enumobj.risq[i] = 2.0 * enumobj.risq[0]; // = 2 * ||b0*||^2
 		enumobj.pr[i] = 1.0;
@@ -76,16 +72,15 @@ FT enumeration(const int N, const FT *R, const int rowstride, const FT *pruningv
 
     // the virtual basis vectors should never be used
     // if sol is non-zero for these positions then there is an internal error
-    for (int i = N; i < MAX_ENUM_N; ++i)
-        if (enumobj._sol[i] != 0)
-        {
+    for (int i = N; i < MAX_ENUM_N; ++i) {
+        if (enumobj._sol[i] != 0) {
             std::cerr << "[enum]: dim=" << N << ": internal error _sol[" << i << "] != 0." << std::endl;
             return 0.0;
         }
+	}
 
     // write enumeration solution to sol
-    for (int i = 0; i < N; ++i)
-	{
+    for (int i = 0; i < N; ++i) {
         sol[i] = enumobj._sol[i];
 	}
 
@@ -103,20 +98,17 @@ FT enumeration_lastone(const int N, const FT *R, const int rowstride, const FT *
     lattice_enum_t<MAX_ENUM_N> enumobj;
 
     // assumption: enumobj.muT is all-zero
-    for (int i = 0; i < N-1; ++i)
-    {
+    for (int i = 0; i < N-1; ++i) {
         FT* muTi = &enumobj.muT[i][0];
         const FT* Ri = R+(i*rowstride);
         FT Rii_inv = FT(1.0) / Ri[i];
-        for (int j = i+1; j < N; ++j)
-        {
+        for (int j = i+1; j < N; ++j) {
             // muT[i][j] = <bj,bi*> / ||bi*||^2
             muTi[j] = Ri[j] * Rii_inv;
         }
     }
 
-    for (int i = 0; i < N; ++i)
-    {
+    for (int i = 0; i < N; ++i) {
         // risq[i] = ||bi*||^2
         enumobj.risq[i] = R[i*rowstride+i] * R[i*rowstride+i];
     }
@@ -147,16 +139,15 @@ FT enumeration_lastone(const int N, const FT *R, const int rowstride, const FT *
 
     // the virtual basis vectors should never be used
     // if sol is non-zero for these positions then there is an internal error
-    for (int i = N; i < MAX_ENUM_N; ++i)
-        if (enumobj._sol[i] != 0)
-        {
+    for (int i = N; i < MAX_ENUM_N; ++i) {
+        if (enumobj._sol[i] != 0) {
             std::cerr << "[enum]: dim=" << N << ": internal error _sol[" << i << "] != 0." << std::endl;
             return 0.0;
         }
+	}
 
     // write enumeration solution to sol
-    for (int i = 0; i < N; ++i)
-	{
+    for (int i = 0; i < N; ++i) {
         sol[i] = enumobj._sol[i];
 	}
 

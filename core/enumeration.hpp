@@ -34,7 +34,7 @@ SOFTWARE.
 
 #define NOCOUNTS 1
 
-template <int N, bool findsubsols = false>
+template <int N>
 struct lattice_enum_t
 {
 	typedef std::array<FT, N> fltrow_t;
@@ -60,10 +60,6 @@ struct lattice_enum_t
 	std::array<std::uint64_t, N + 1> _counts;
 
 	FT _sigT[N][N];
-
-	// fltrow_t _subsolL;
-	// std::array<fltrow_t, N> _subsol;
-
 
 	lattice_enum_t()
 		: muT(), risq(), pr()
@@ -96,13 +92,6 @@ struct lattice_enum_t
 		++_counts[i];
 #endif
 
-		/* if (findsubsols && li < _subsolL[i] && li != 0.0)
-		{
-			_subsolL[i] = li;
-			_subsol[i][i] = xi;
-			for (int j = i + 1; j < N; ++j)
-				_subsol[i][j] = _x[j];
-		} */
 		if (li > _AA[i])
 			return;
 
@@ -111,7 +100,6 @@ struct lattice_enum_t
 		_x[i] = xi;
 		_l[i] = li;
 
-
 		for (int j = _r[i - 1]; j > i - 1; --j)
 			_sigT[i - 1][j - 1] = _sigT[i - 1][j] - _x[j] * muT[i - 1][j];
 
@@ -119,28 +107,21 @@ struct lattice_enum_t
 		{
 			enumerate_recur(i_tag<i - 1>());
 
-			if (_l[i + 1] == 0.0)
-			{
+			if (_l[i + 1] == 0.0) {
 				++_x[i];
-				_r[i - 1] = i;
-				FT yi2 = _c[i] - _x[i];
-				FT li2 = _l[i + 1] + (yi2 * yi2 * risq[i]);
-				if (li2 > _AA[i])
-					return;
-				_l[i] = li2;
-				_sigT[i - 1][i - 1] = _sigT[i - 1][i] - _x[i] * muT[i - 1][i];
+			} else {
+				_x[i] += _Dx[i];
+				_D2x[i] = -_D2x[i];
+				_Dx[i] = _D2x[i] - _Dx[i];
 			}
-			else
-			{
-				_x[i] += _Dx[i]; _D2x[i] = -_D2x[i]; _Dx[i] = _D2x[i] - _Dx[i];
-				_r[i - 1] = i;
-				FT yi2 = _c[i] - _x[i];
-				FT li2 = _l[i + 1] + (yi2 * yi2 * risq[i]);
-				if (li2 > _AA[i])
-					return;
-				_l[i] = li2;
-				_sigT[i - 1][i - 1] = _sigT[i - 1][i] - _x[i] * muT[i - 1][i];
-			}
+
+			_r[i - 1] = i;
+			FT yi2 = _c[i] - _x[i];
+			FT li2 = _l[i + 1] + (yi2 * yi2 * risq[i]);
+			if (li2 > _AA[i])
+				return;
+			_l[i] = li2;
+			_sigT[i - 1][i - 1] = _sigT[i - 1][i] - _x[i] * muT[i - 1][i];
 		}
 	}
 
@@ -156,13 +137,6 @@ struct lattice_enum_t
 		++_counts[i];
 #endif
 
-		/* if (findsubsols && li < _subsolL[i] && li != 0.0)
-		{
-			_subsolL[i] = li;
-			_subsol[i][i] = xi;
-			for (int j = i + 1; j < N; ++j)
-				_subsol[i][j] = _x[j];
-		} */
 		if (li > _AA[i])
 			return;
 
@@ -171,29 +145,23 @@ struct lattice_enum_t
 		_x[i] = xi;
 		_l[i] = li;
 
-
 		while (true)
 		{
 			enumerate_recur(i_tag<i - 1>());
 
-			if (_l[i + 1] == 0.0)
-			{
+			if (_l[i + 1] == 0.0) {
 				++_x[i];
-				FT yi2 = _c[i] - _x[i];
-				FT li2 = _l[i + 1] + (yi2 * yi2 * risq[i]);
-				if (li2 > _AA[i])
-					return;
-				_l[i] = li2;
+			} else {
+				_x[i] += _Dx[i];
+				_D2x[i] = -_D2x[i];
+				_Dx[i] = _D2x[i] - _Dx[i];
 			}
-			else
-			{
-				_x[i] += _Dx[i]; _D2x[i] = -_D2x[i]; _Dx[i] = _D2x[i] - _Dx[i];
-				FT yi2 = _c[i] - _x[i];
-				FT li2 = _l[i + 1] + (yi2 * yi2 * risq[i]);
-				if (li2 > _AA[i])
-					return;
-				_l[i] = li2;
-			}
+
+			FT yi2 = _c[i] - _x[i];
+			FT li2 = _l[i + 1] + (yi2 * yi2 * risq[i]);
+			if (li2 > _AA[i])
+				return;
+			_l[i] = li2;
 		}
 	}
 
@@ -221,19 +189,12 @@ struct lattice_enum_t
 		std::fill(_c.begin(), _c.end(), 0.0);
 
 		std::fill(_r.begin(), _r.end(), N-1);
-		for (int j = 0; j < N; ++j)
-		{
-			std::fill(_sigT[j]+0, _sigT[j]+N, 0.0);
-			// std::fill(_subsol[j].begin(), _subsol[j].end(), 0);
-		}
-		// _subsolL = risq;
+		std::fill_n(&_sigT[0][0], N * N, 0.0);
 
 		std::fill(_sol.begin(), _sol.end(), 0);
 		std::fill(_counts.begin(), _counts.end(), 0);
 
 		enumerate_recur(i_tag<N-1>());
-
-//		std::cout << "[enum]: " << sqrt(_A) << std::endl;
 	}
 
 
@@ -262,7 +223,6 @@ struct lattice_enum_t
 	}
 
 	inline void enumerate_recur_lastone(i_tag<0> _, int k) {}
-
 
 	inline void enumerate_recursive_lastone(int j)
 	{
