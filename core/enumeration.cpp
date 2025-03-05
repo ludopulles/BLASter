@@ -93,4 +93,75 @@ FT enumeration(const int N, const FT *R, const int rowstride, const FT *pruningv
 	return (enumobj._A < enumeration_radius) ? enumobj._A : 0.0;
 }
 
+FT enumeration_lastone(const int N, const FT *R, const int rowstride, const FT *pruningvector, ZZ* sol)
+{
+    std::fill(sol, sol+N, ZZ(0));
+
+    if (N > MAX_ENUM_N || N <= 0)
+        return 0.0;
+
+    lattice_enum_t<MAX_ENUM_N> enumobj;
+
+    // assumption: enumobj.muT is all-zero
+    for (int i = 0; i < N-1; ++i)
+    {
+        FT* muTi = &enumobj.muT[i][0];
+        const FT* Ri = R+(i*rowstride);
+        FT Rii_inv = FT(1.0) / Ri[i];
+        for (int j = i+1; j < N; ++j)
+        {
+            // muT[i][j] = <bj,bi*> / ||bi*||^2
+            muTi[j] = Ri[j] * Rii_inv;
+        }
+    }
+
+    for (int i = 0; i < N; ++i)
+    {
+        // risq[i] = ||bi*||^2
+        enumobj.risq[i] = R[i*rowstride+i] * R[i*rowstride+i];
+    }
+
+	if (pruningvector == nullptr)
+		for (int i = 0; i < N; i++)
+			enumobj.pr[i] = 1.0;
+	else
+		std::copy(&pruningvector[0], &pruningvector[N], &enumobj.pr[0]);
+
+	FT enumeration_radius = 0.0;
+	for (int i = 0; i < N; i++)
+		enumeration_radius += R[i * rowstride + (N-1)] * R[i * rowstride + (N-1)];
+	// enumeration_radius = ||b_{N-1}||^2.
+
+    for (int i = N; i < MAX_ENUM_N; ++i)
+    {
+        // ensure these virtual basis vectors are never used
+        enumobj.risq[i] = 2.0 * enumeration_radius;
+		enumobj.pr[i] = 1.0;
+    }
+
+	// set the initial norm bound
+	enumobj._A = enumeration_radius;
+
+    // perform enumeration
+    enumobj.enumerate_recursive_lastone(N-1);
+
+    // the virtual basis vectors should never be used
+    // if sol is non-zero for these positions then there is an internal error
+    for (int i = N; i < MAX_ENUM_N; ++i)
+        if (enumobj._sol[i] != 0)
+        {
+            std::cerr << "[enum]: dim=" << N << ": internal error _sol[" << i << "] != 0." << std::endl;
+            return 0.0;
+        }
+
+    // write enumeration solution to sol
+    for (int i = 0; i < N; ++i)
+	{
+        sol[i] = enumobj._sol[i];
+	}
+
+	// return the squared norm of the solution found
+	return (enumobj._A < enumeration_radius) ? enumobj._A : 0.0;
+}
+
 #endif // ENUMLIB_WRAPPER_ENUMERATION_CPP

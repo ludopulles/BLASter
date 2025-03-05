@@ -1,3 +1,6 @@
+#ifndef PRUNING_PARAMETERS_CPP
+#define PRUNING_PARAMETERS_CPP
+
 #include <cassert>
 #include <vector>
 
@@ -59,3 +62,5 @@ const FT* get_pruning_coefficients(const int block_size) {
 	assert(2 <= block_size && block_size <= MAX_ENUM_N);
 	return &pruning_params[(block_size + 1) / 2][0];
 }
+
+#endif // PRUNING_PARAMETERS_CPP

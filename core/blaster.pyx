@@ -11,7 +11,8 @@ from openmp cimport omp_set_num_threads, omp_get_num_threads, omp_get_thread_num
 
 from decl cimport FT, ZZ, \
     lll_reduce, deeplll_reduce, bkz_reduce, \
-    eigen_init, eigen_matmul, eigen_left_matmul, eigen_right_matmul
+    eigen_init, eigen_matmul, eigen_left_matmul, eigen_right_matmul, \
+    get_pruning_coefficients, enumeration, enumeration_lastone
 
 
 cnp.import_array()  # http://docs.cython.org/en/latest/src/tutorial/numpy.html#adding-types
@@ -216,3 +217,37 @@ def ZZ_right_matmul_strided(ZZ[:, :] A, const ZZ[:] B) -> None:
 def FT_matmul(cnp.ndarray[FT, ndim=2] A, cnp.ndarray[FT, ndim=2] B) -> cnp.ndarray[FT]:
     # Note: NumPy uses BLAS to multiply floating-point matrices, but Eigen uses OpenMP
     return A @ B
+
+
+def enumerate_svp(const FT[:, :] R) -> tuple(FT, ZZ[::1]):
+    """
+    Retrieve the shortest vector in `R` expressed as `R * sol` with `sol` integral,
+    such that its square norm is shorter than `R[0, 0]^2`.
+    :return: the pair `(|| R * sol ||^2, sol)`.
+    """
+    # Variables
+    cdef Py_ssize_t n = R.shape[0], stride = R.strides[0] // sizeof(ZZ)
+    cdef ZZ[::1] sol = np.empty(shape=(n), dtype=NP_ZZ)
+
+    # Get default pruning parameters
+    cdef const FT *pr = get_pruning_coefficients(n)
+
+    cdef FT norm_square = enumeration(n, &R[0, 0], stride, pr, R[0, 0]**2, <ZZ*>&sol[0])
+    return norm_square, np.asarray(sol)
+
+def enumerate_lastone(const FT[:, :] R) -> tuple(FT, ZZ[::1]):
+    """
+    Warning: this is a hack.
+
+    Retrieve the shortest vector in `R` expressed as `R * sol` such that `sol[-1] = 1`.
+    :return: the pair `(|| R * sol ||^2, sol)`.
+    """
+    # Variables
+    cdef Py_ssize_t n = R.shape[0], stride = R.strides[0] // sizeof(ZZ)
+    cdef ZZ[::1] sol = np.empty(shape=(n), dtype=NP_ZZ)
+
+    # Get default pruning parameters, might be optimistic?
+    cdef const FT *pr = get_pruning_coefficients(n)
+
+    cdef FT norm_square = enumeration_lastone(n, &R[0, 0], stride, pr, <ZZ*>&sol[0])
+    return norm_square, np.asarray(sol)

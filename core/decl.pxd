@@ -23,3 +23,11 @@ cdef extern from "eigen_matmul.cpp":
 	# a = a * b
     void eigen_right_matmul(ZZ *a, const ZZ *b, int n, int m) noexcept nogil
     void eigen_right_matmul(ZZ *a, const ZZ *b, int n, int m, int stride_a) noexcept nogil
+
+
+cdef extern from "pruning_params.cpp":
+    FT* get_pruning_coefficients(int block_size) noexcept nogil
+
+cdef extern from "enumeration.cpp":
+    FT enumeration(int N, FT *R, int rowstride, FT *pruningvector, FT enumeration_radius, ZZ* sol) noexcept nogil
+    FT enumeration_lastone(int N, FT *R, int rowstride, FT *pruningvector, ZZ* sol) noexcept nogil

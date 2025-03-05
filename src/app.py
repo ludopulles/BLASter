@@ -13,6 +13,7 @@ import numpy as np
 # Local imports
 from lattice_io import read_qary_lattice, write_lattice
 from blaster import reduce
+from blaster_core import enumerate_lastone, enumerate_svp
 from stats import gaussian_heuristic, rhf, slope, get_profile
 
 
@@ -112,6 +113,18 @@ def __main__():
 
     # Run BLASter lattice reduction on basis B
     U, B_red, tprof = reduce(B, **vars(args))
+
+    ################################################################################
+    # HACK
+    R = np.linalg.qr(B_red, mode='r')[:40, :40]
+    print(R)
+    print("||b_{N-1}||^2 = ", sum(x**2 for x in R[:, -1]))
+
+    len_squared, sol_arr = enumerate_svp(R)
+    print("Solution array =", sol_arr, "; length =", len_squared)
+    len_squared, sol_arr = enumerate_lastone(R)
+    print("Solution array =", sol_arr, "; length =", len_squared)
+    ################################################################################
 
     # Write B_red to the output file
     print_mat = args.output is not None

@@ -25,6 +25,7 @@ SOFTWARE.
 #ifndef ENUMLIB_ENUMERATION_HPP
 #define ENUMLIB_ENUMERATION_HPP
 
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <array>
@@ -233,6 +234,56 @@ struct lattice_enum_t
 		enumerate_recur(i_tag<N-1>());
 
 //		std::cout << "[enum]: " << sqrt(_A) << std::endl;
+	}
+
+
+	/**
+	 * Code for enumeration that finds the shortest vector such that the last coefficient equals 1.
+	 * Based on `template<int i> inline void enumerate_recur(i_tag<i>)` method.
+	 */
+	template<int i>
+	inline void enumerate_recur_lastone(i_tag<i> _, int k)
+	{
+#ifndef NOCOUNTS
+		++_counts[i];
+#endif
+
+		i_tag sub = i_tag<i - 1>();
+		if (i == k) {
+			// Force this coefficient to equal 1.
+			_x[i] = 1;
+			_r[i - 1] = i;
+			_l[i] = risq[i];
+			_sigT[i - 1][i - 1] = -muT[i - 1][i];
+
+			enumerate_recur(sub);
+			return;
+		} else enumerate_recur_lastone(sub, k);
+	}
+
+	inline void enumerate_recur_lastone(i_tag<0> _, int k) {}
+
+
+	inline void enumerate_recursive_lastone(int j)
+	{
+		assert(0 < j && j < N);
+
+		_update_AA();
+
+		std::fill(_l.begin(), _l.end(), 0.0);
+		std::fill(_x.begin(), _x.end(), 0);
+		std::fill(_Dx.begin(), _Dx.end(), 0);
+		std::fill(_D2x.begin(), _D2x.end(), -1);
+		std::fill(_c.begin(), _c.end(), 0.0);
+
+		std::fill(_r.begin(), _r.end(), N-1);
+		std::fill_n(&_sigT[0][0], N * N, FT(0.0));
+
+		std::fill(_sol.begin(), _sol.end(), 0);
+		std::fill(_counts.begin(), _counts.end(), 0);
+
+		enumerate_recur_lastone(i_tag<N - 1>(), j);
+		assert(_sol[j] == 1);
 	}
 };
 
