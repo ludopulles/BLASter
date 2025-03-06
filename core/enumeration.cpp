@@ -152,7 +152,8 @@ FT enumeration_lastone(const int N, const FT *R, const int rowstride, const FT *
 	}
 
 	// return the squared norm of the solution found
-	return (enumobj._A < enumeration_radius) ? enumobj._A : 0.0;
+    return enumobj._A;
+	//return (enumobj._A < enumeration_radius) ? enumobj._A : 0.0;
 }
 
 #endif // ENUMLIB_WRAPPER_ENUMERATION_CPP
