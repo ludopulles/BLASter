@@ -30,4 +30,4 @@ cdef extern from "pruning_params.cpp":
 
 cdef extern from "enumeration.cpp":
     FT enumeration(int N, FT *R, int rowstride, FT *pruningvector, FT enumeration_radius, ZZ* sol) noexcept nogil
-    FT enumeration_lastone(int N, FT *R, int rowstride, FT *pruningvector, ZZ* sol) noexcept nogil
+    FT enumeration_lastone(int N, FT *R, int rowstride, FT *pruningvector, FT enumeration_radius, ZZ* sol) noexcept nogil

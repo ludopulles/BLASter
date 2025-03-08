@@ -249,5 +249,5 @@ def enumerate_lastone(const FT[:, :] R) -> tuple(FT, ZZ[::1]):
     # Get default pruning parameters, might be optimistic?
     cdef const FT *pr = get_pruning_coefficients(n)
 
-    cdef FT norm_square = enumeration_lastone(n, &R[0, 0], stride, pr, <ZZ*>&sol[0])
+    cdef FT norm_square = enumeration_lastone(n, &R[0, 0], stride, pr,  R[0, 0]**2, <ZZ*>&sol[0])
     return norm_square, np.asarray(sol)

@@ -88,7 +88,7 @@ FT enumeration(const int N, const FT *R, const int rowstride, const FT *pruningv
 	return (enumobj._A < enumeration_radius) ? enumobj._A : 0.0;
 }
 
-FT enumeration_lastone(const int N, const FT *R, const int rowstride, const FT *pruningvector, ZZ* sol)
+FT enumeration_lastone(const int N, const FT *R, const int rowstride, const FT *pruningvector, FT enumeration_radius, ZZ* sol)
 {
     std::fill(sol, sol+N, ZZ(0));
 
@@ -119,10 +119,10 @@ FT enumeration_lastone(const int N, const FT *R, const int rowstride, const FT *
 	else
 		std::copy(&pruningvector[0], &pruningvector[N], &enumobj.pr[0]);
 
-	FT enumeration_radius = 0.0;
-	for (int i = 0; i < N; i++)
-		enumeration_radius += R[i * rowstride + (N-1)] * R[i * rowstride + (N-1)];
-	// enumeration_radius = ||b_{N-1}||^2.
+	// FT enumeration_radius = 0.0;
+	// for (int i = 0; i < N; i++)
+	// 	enumeration_radius += R[i * rowstride + (N-1)] * R[i * rowstride + (N-1)];
+	// // enumeration_radius = ||b_{N-1}||^2.
 
     for (int i = N; i < MAX_ENUM_N; ++i)
     {
