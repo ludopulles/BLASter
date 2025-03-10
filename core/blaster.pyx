@@ -246,8 +246,16 @@ def enumerate_lastone(const FT[:, :] R) -> tuple(FT, ZZ[::1]):
     cdef Py_ssize_t n = R.shape[0], stride = R.strides[0] // sizeof(ZZ)
     cdef ZZ[::1] sol = np.empty(shape=(n), dtype=NP_ZZ)
 
-    # Get default pruning parameters, might be optimistic?
-    cdef const FT *pr = get_pruning_coefficients(n)
-
-    cdef FT norm_square = enumeration_lastone(n, &R[0, 0], stride, pr,  R[0, 0]**2, <ZZ*>&sol[0])
+    # Get default pruning parameters, and adjust them to CVP
+    cdef const FT *pr_ = get_pruning_coefficients(n-1)
+    cdef FT[::1] pr = np.empty(shape=(n), dtype=NP_FT)
+    cdef FT a = 1.001 * (R[n-1, n-1]**2) / (R[0, 0]**2)
+    if a > 1:
+        a = 1
+    pr[0] = 1.
+    pr[n-1] = a
+    for i in range(1, n-1):
+        pr[i] = (1-a) * pr_[i] + a
+ 
+    cdef FT norm_square = enumeration_lastone(n, &R[0, 0], stride, &pr[0],  R[0, 0]**2, <ZZ*>&sol[0])
     return norm_square, np.asarray(sol)
