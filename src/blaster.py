@@ -232,15 +232,20 @@ def reduce(
         if not beta:
             lll_reduce(B, U, U_seysen, lll_size, delta, depth, tprof, tracers, debug, use_seysen)
         else:
+            # print("BKZ happening")
             # Parse BKZ parameters:
             bkz_tours = kwds.get("bkz_tours") or 1
             bkz_size = kwds.get("bkz_size") or lll_size
-            bkz_prog = kwds.get("bkz_prog") or beta
+            bkz_prog = kwds.get("bkz_prog")
 
             # Progressive-BKZ: start running BKZ-beta' for some `beta' >= 40`,
             # then increase the blocksize beta' by `bkz_prog` and run BKZ-beta' again,
             # and repeat this until `beta' = beta`.
-            betas = range(40 + ((beta - 40) % bkz_prog), beta + 1, bkz_prog)
+            if bkz_prog is None:
+                betas = [beta]
+            else:
+                betas = range(40 + ((beta - 40) % bkz_prog), beta + 1, bkz_prog)
+
 
             # In the literature on BKZ, it is usual to run LLL before calling the SVP oracle in BKZ.
             # However, it is actually better to preprocess the basis with 4-deep-LLL instead of LLL,
