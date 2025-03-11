@@ -249,7 +249,7 @@ def enumerate_lastone(const FT[:, :] R) -> tuple(FT, ZZ[::1]):
     # Get default pruning parameters, and adjust them to CVP
     cdef const FT *pr_ = get_pruning_coefficients(n-1)
     cdef FT[::1] pr = np.empty(shape=(n), dtype=NP_FT)
-    cdef FT a = 1.001 * (R[n-1, n-1]**2) / (R[0, 0]**2)
+    cdef FT a = 1.2 * (R[n-1, n-1]**2) / (R[0, 0]**2)
     if a > 1:
         a = 1
     pr[0] = 1.
