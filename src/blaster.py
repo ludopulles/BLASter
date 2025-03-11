@@ -107,7 +107,6 @@ def bkz_reduce(B, U, U_seysen, lll_size, delta, depth,
     """
     # BKZ parameters:
     n, tours_done, cur_front = B.shape[1], 0, 0
-
     lll_reduce(B, U, U_seysen, lll_size, delta, depth, tprof, tracers, debug, use_seysen)
 
     while tours_done < bkz_tours:
@@ -251,7 +250,7 @@ def reduce(
             # However, it is actually better to preprocess the basis with 4-deep-LLL instead of LLL,
             # before calling the SVP oracle.
             for beta_ in betas:
-                bkz_reduce(B, U, U_seysen, lll_size, delta, 4, beta_,
+                bkz_reduce(B, U, U_seysen, lll_size, delta, depth, beta_,
                            bkz_tours if beta_ == beta else 1, bkz_size,
                            tprof, tracers, debug, use_seysen)
     except KeyboardInterrupt:
