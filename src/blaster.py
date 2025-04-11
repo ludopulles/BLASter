@@ -12,7 +12,7 @@ from matplotlib.animation import ArtistAnimation, PillowWriter
 
 # Local imports
 from blaster_core import \
-    set_debug_flag, set_num_cores, block_lll, block_deep_lll, block_bkz, ZZ_right_matmul
+    set_debug_flag, set_num_cores, block_lll, block_deep_lll, block_bkz, ZZ_matmul
 from size_reduction import is_lll_reduced, is_weakly_lll_reduced, size_reduce, seysen_reduce
 from stats import get_profile, rhf, slope, potential
 
@@ -82,8 +82,8 @@ def lll_reduce(B, U, U_seysen, lll_size, delta, depth,
 
         # Step 5: Update B and U with transformation from Seysen's reduction.
         t5 = perf_counter_ns()
-        ZZ_right_matmul(U, U_seysen)
-        ZZ_right_matmul(B, U_seysen)
+        U = ZZ_matmul(U, U_seysen)
+        B = ZZ_matmul(B, U_seysen)
 
         # Step 6: Check whether the basis is weakly-LLL reduced.
         t6 = perf_counter_ns()
@@ -136,8 +136,8 @@ def bkz_reduce(B, U, U_seysen, lll_size, delta, depth,
 
         # Step 5: Update B and U with transformation from Seysen's reduction.
         t5 = perf_counter_ns()
-        ZZ_right_matmul(U, U_seysen)
-        ZZ_right_matmul(B, U_seysen)
+        U = ZZ_matmul(U, U_seysen)
+        B = ZZ_matmul(B, U_seysen)
 
         t6 = perf_counter_ns()
 

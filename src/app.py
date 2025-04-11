@@ -138,5 +138,7 @@ def __main__():
 
 
 if __name__ == '__main__':
+    float_formatter = "{:.2f}".format
     np.set_printoptions(linewidth=1000, threshold=2147483647, suppress=True)
+    np.set_printoptions(formatter={'float_kind':float_formatter})
     __main__()

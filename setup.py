@@ -10,16 +10,6 @@ import numpy as np
 openmp_arg = '/openmp' if platform.startswith("win") else '-fopenmp'
 include_dirs = [np.get_include()]
 
-# Look for the Eigen library in `/usr/include` and `~/.local/include`.
-for f in [Path('eigen3'), Path('/usr/include/eigen3'), Path.home().joinpath('.local/include/eigen3')]:
-    if f.exists() and f.is_dir():
-        include_dirs += [str(f)]
-        break
-else:
-    print("ERROR: Eigen3 library is required!")
-    print("NOTE : Please run 'make eigen3'")
-    exit(1)
-
 # Compile with extra arguments
 compile_args = [
     '--std=c++17',
@@ -45,7 +35,6 @@ else:
     compile_args += [
         '-O3',
         '-march=native',
-        '-DEIGEN_NO_DEBUG',
     ]
 
 extensions = [Extension(

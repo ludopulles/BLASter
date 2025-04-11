@@ -8,7 +8,7 @@ from functools import cache
 import numpy as np
 
 # Local imports
-from blaster_core import ZZ_matmul_strided, ZZ_left_matmul_strided, FT_matmul
+from blaster_core import ZZ_matmul, FT_matmul
 
 
 # Reduction properties:
@@ -199,7 +199,7 @@ def size_reduce(R, U):
         nearest_plane(R[i:j, i:j], R[i:j, j:k], U[i:j, j:k])
 
         # U12 = U11 · U12'
-        ZZ_left_matmul_strided(U[i:j, i:j], U[i:j, j:k])
+        U[i:j, j:k] = ZZ_matmul(U[i:j, i:j], U[i:j, j:k])
 
 
 def seysen_reduce(R, U):
@@ -236,7 +236,7 @@ def seysen_reduce(R, U):
         W = np.rint(FT_matmul(-np.linalg.inv(R[i:j, i:j]), R[i:j, j:k]))
 
         # U12 = U11 · W
-        U[i:j, j:k] = ZZ_matmul_strided(U[i:j, i:j], W.astype(np.int64))
+        U[i:j, j:k] = ZZ_matmul(U[i:j, i:j], W.astype(np.int64))
 
         # S12 = S12' + S11 · W.
         R[i:j, j:k] += FT_matmul(R[i:j, i:j], W.astype(np.float64))
@@ -319,7 +319,7 @@ def seysen_reduce(R, U):
 #         # Note: NP was called with the size-reduced R11' = R11 · U11.
 #         # U12 = U11 · U12'
 #         # U[:m, m:] = U[:m, :m] @ U[:m, m:]
-#         ZZ_left_matmul_strided(U[:m, :m], U[:m, m:])
+#         U[:m, m:] = ZZ_matmul(U[:m, :m], U[:m, m:])
 #
 #
 # def seysen_reduce(R, U):
@@ -354,4 +354,4 @@ def seysen_reduce(R, U):
 #        W = np.rint(FT_matmul(-np.linalg.inv(S11), S12)).astype(np.int64)
 #
 #        # U12 = U11 · W
-#        U[:m, m:] = ZZ_matmul_strided(U[:m, :m], W)
+#        U[:m, m:] = ZZ_matmul(U[:m, :m], W)
