@@ -17,9 +17,9 @@ def read_qary_lattice(input_file=None):
             data.append(input())
     else:
         with open(input_file, 'r', encoding='utf-8') as f:
-            data.append(f.readline()[:-1])
+            data.append(f.readline().strip())
             while data[-1] != ']' and data[-1][-2] != ']':
-                data.append(f.readline()[:-1])
+                data.append(f.readline().strip())
 
     # Strip away starting '[' and ending ']'
     assert data[0][0] == '[' and data[-1][-1] == ']'
