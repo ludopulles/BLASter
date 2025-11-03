@@ -129,7 +129,7 @@ def __main__():
     # Print basis profile
     if args.debug:
         prof = get_profile(B_red)
-        print('\nProfile = [' + ' '.join([f'{x:.2f}' for x in prof]) + ']\n'
+        print('Profile = [' + ' '.join([f'{x:.2f}' for x in prof]) + ']\n'
               f'RHF = {rhf(prof):.5f}^n, slope = {slope(prof):.6f}, '
               f'∥b_1∥ = {2.0**prof[0]:.1f}', file=stderr)
 

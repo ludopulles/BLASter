@@ -12,9 +12,9 @@ def read_qary_lattice(input_file=None):
     """
     data = []
     if input_file is None:
-        data.append(input())
+        data.append(input().strip())
         while data[-1] != ']' and data[-1][-2] != ']':
-            data.append(input())
+            data.append(input().strip())
     else:
         with open(input_file, 'r', encoding='utf-8') as f:
             data.append(f.readline().strip())
