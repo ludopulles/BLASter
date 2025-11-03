@@ -10,7 +10,6 @@ typedef Eigen::Stride<Eigen::Dynamic, 1> Stride;
 
 void eigen_init(int num_cores) {
 	// See https://eigen.tuxfamily.org/dox/TopicMultiThreading.html
-	Eigen::initParallel();
 	Eigen::setNbThreads(num_cores);
 }
 
