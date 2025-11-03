@@ -54,8 +54,7 @@ PIP_REQUIREMENTS := pip cython cysignals numpy setuptools matplotlib
 venv:
 	@if [ "$(VIRTUAL_ENV)" != "" ]; then echo "Active virtual environment detected. Please run 'deactivate' first!"; false; fi
 	$(PYTHON) -m pip install --upgrade pip 2> /dev/null || echo "ERROR: Upgrading pip failed!"
-	$(PYTHON) -m pip install virtualenv 2> /dev/null || echo "ERROR: Installing pip package virtualenv failed!"
-	$(PYTHON) -m virtualenv $(VENV)
+	$(PYTHON) -m virtualenv $(VENV) || $(PYTHON) -m venv $(VENV) || echo "ERROR: creating virtual environment failed! Please (pip) install virtualenv or venv."
 	-@rm activate 2>/dev/null
 	ln -s $(VENV)/bin/activate .
 	printf "#!/usr/bin/env bash\nOPENBLAS_NUM_THREADS=1 $(VENV)/bin/$(PYTHONV) \$$*\n" > ./$(PYTHONV)
