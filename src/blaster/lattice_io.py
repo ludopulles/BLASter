@@ -32,10 +32,6 @@ def read_qary_lattice(input_file=None):
     # Split data on whitespace and parse as integers.
     data = [list(map(int, line[1:-1].split())) for line in data]
 
-    if np.count_nonzero(data[-1]) == 1:
-        # The q-ary vectors are at the back, so reverse the basis vectors in place.
-        data.reverse()
-
     # Use column vectors.
     return np.ascontiguousarray(np.array(data, dtype=np.int64).transpose())
 

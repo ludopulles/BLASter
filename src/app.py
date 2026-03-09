@@ -31,6 +31,7 @@ def __main__():
     # I/O arguments
     parser.add_argument('--input', '-i', type=str, help='Input file (default=stdin)')
     parser.add_argument('--output', '-o', type=str, help='Output file (default=stdout)')
+    parser.add_argument('--output-unimod', '-u', type=str, help='Output file for unimodular')
     parser.add_argument('--logfile', '-l', type=str, help='Logging file')
     parser.add_argument(
             '--profile', '-p', action='store_true', dest='debug',
@@ -52,6 +53,12 @@ def __main__():
     parser.add_argument(
             '--no-seysen', '-s', action='store_false', dest='use_seysen',
             help='Use size reduction if argument is given. Otherwise use Seysen\'s reduction.')
+    parser.add_argument(
+            '--qf', action='store_true', dest='is_qf',
+            help='Input is a quadratic form as opposed to a basis.')
+    parser.add_argument(
+            '--convert-to-qf', action='store_true',
+            help='Convert the input basis to a quadratic form, and then reduce that.')
 
     # Parameters specific to deep-LLL:
     parser.add_argument(
@@ -83,17 +90,24 @@ def __main__():
     B = read_qary_lattice(args.input)
     n = B.shape[1]  # rank of basis
 
+    if args.convert_to_qf:
+        B = B.T @ B
+        args.is_qf = True
+    is_qf = args.is_qf
+
     if args.verbose:
         # Experimentally, LLL gives a RHF of 1.02190
         # See: https://github.com/malb/lattice-estimator/blob/main/estimator/reduction.py
         # TODO: adjust slope to the prediction for deep-LLL and BKZ.
         log_slope = log2(1.02190)  # Slope of graph of basis profile, log2(||b_i*||^2).
-        prof = get_profile(B)
+        prof = get_profile(B, False, is_qf)
         log_det = sum(prof)
         norm_b1 = 2.0**(log_slope * (n-1) + log_det / n)
 
         comparison = ""
-        if np.count_nonzero(B[:, 0]) == 1:
+        if is_qf:
+            comparison = f'{"<" if norm_b1 < B[0, 0]**.5 else ">="} {B[0, 0]**.5:.2f} '
+        elif np.count_nonzero(B[:, 0]) == 1:  # q-ary lattice
             q = sum(B[:, 0])
             comparison = f'{"<" if norm_b1 < q else ">="} {int(q):d} '
         print(f'E[∥b₁∥] ~ {norm_b1:.2f} {comparison}'
@@ -121,19 +135,23 @@ def __main__():
     elif not args.quiet:
         write_lattice(B_red)
 
+    if args.output_unimod or not args.quiet:
+        write_lattice(U, args.output_unimod)
+
     # Print time consumption
     if args.verbose:
         print('\n', str(tprof), sep="", file=stderr)
 
     # Print basis profile
     if args.debug:
-        prof = get_profile(B_red)
+        prof = get_profile(B_red, False, is_qf)
         print('Profile = [' + ' '.join([f'{x:.2f}' for x in prof]) + ']\n'
               f'RHF = {rhf(prof):.5f}^n, slope = {slope(prof):.6f}, '
               f'∥b_1∥ = {2.0**prof[0]:.1f}', file=stderr)
 
     # Assert that applying U on the basis B indeed gives the reduced basis B_red.
-    assert (B @ U == B_red).all()
+    B_red_check = (U.T @ B @ U) if is_qf else (B @ U)
+    assert (B_red_check == B_red).all()
 
 
 if __name__ == '__main__':
