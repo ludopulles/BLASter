@@ -67,14 +67,7 @@ def block_lll(
                 memcpy(&R[i + j, i], &R_sub[block_id, j * w], w * sizeof(FT));
 
     sig_off()
-
-    # Step 2: Update U and B_red locally by multiplying with U_sub[block_id].
-    for block_id in range(num_blocks):
-        i = offset + block_size * block_id
-        w = min(n - i, block_size)
-
-        ZZ_right_matmul_strided(U[:, i:i+w], U_sub[block_id, 0:w*w])
-        ZZ_right_matmul_strided(B_red[:, i:i+w], U_sub[block_id, 0:w*w])
+    _propagate_update(n, B_red, U, U_sub, num_blocks, offset, block_size)
 
 
 @cython.boundscheck(False)
@@ -110,14 +103,7 @@ def block_deep_lll(int depth,
                 memcpy(&R[i + j, i], &R_sub[block_id, j * w], w * sizeof(FT));
 
     sig_off()
-
-    # Step 2: Update U and B_red locally by multiplying with U_sub[block_id].
-    for block_id in range(num_blocks):
-        i = offset + block_size * block_id
-        w = min(n - i, block_size)
-
-        ZZ_right_matmul_strided(U[:, i:i+w], U_sub[block_id, 0:w*w])
-        ZZ_right_matmul_strided(B_red[:, i:i+w], U_sub[block_id, 0:w*w])
+    _propagate_update(n, B_red, U, U_sub, num_blocks, offset, block_size)
 
 
 @cython.boundscheck(False)
@@ -153,14 +139,22 @@ def block_bkz(int beta,
                 memcpy(&R[i + j, i], &R_sub[block_id, j * w], w * sizeof(FT));
 
     sig_off()
+    _propagate_update(n, B_red, U, U_sub, num_blocks, offset, block_size)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _propagate_update(Py_ssize_t n, cnp.ndarray[ZZ, ndim=2] B_red, cnp.ndarray[ZZ, ndim=2] U,
+        const ZZ[:, ::1] U_sub, int num_blocks, int offset, int block_size) -> None:
+    cdef int i, w, block_id
 
     # Step 2: Update U and B_red locally by multiplying with U_sub[block_id].
     for block_id in range(num_blocks):
         i = offset + block_size * block_id
         w = min(n - i, block_size)
 
-        ZZ_right_matmul_strided(U[:, i:i+w], U_sub[block_id, 0:w*w])
-        ZZ_right_matmul_strided(B_red[:, i:i+w], U_sub[block_id, 0:w*w])
+        ZZ_right_matmul_strided(U[:, i:i+w], <const ZZ[:w, :w]>&U_sub[block_id, 0])
+        ZZ_right_matmul_strided(B_red[:, i:i+w], <const ZZ[:w, :w]>&U_sub[block_id, 0])
 
 
 #
@@ -191,6 +185,7 @@ def ZZ_left_matmul_strided(const ZZ[:, :] A, ZZ[:, :] B) -> None:
 
     assert A.strides[1] == sizeof(ZZ), "Array A not C-contiguous"
     assert B.strides[1] == sizeof(ZZ), "Array B not C-contiguous"
+    assert A.shape[0] == n and A.shape[1] == n, "Dimension mismatch"
     eigen_left_matmul(<const ZZ*>&A[0, 0], <ZZ*>&B[0, 0], n, m, stride_a, stride_b)
 
 
@@ -199,24 +194,22 @@ def ZZ_right_matmul(ZZ[:, ::1] A, const ZZ[:, ::1] B) -> None:
     Compute A <- A * B.
     A and B should be C-contiguous.
     """
-    cdef:
-        int n = A.shape[0], m = A.shape[1]
+    cdef int n = A.shape[0], m = A.shape[1]
 
     assert B.shape[0] == m and B.shape[1] == m, "Dimension mismatch"
     eigen_right_matmul(<ZZ*>&A[0, 0], <const ZZ*>&B[0, 0], n, m)
 
 
-def ZZ_right_matmul_strided(ZZ[:, :] A, const ZZ[:] B) -> None:
+def ZZ_right_matmul_strided(ZZ[:, :] A, const ZZ[:, :] B) -> None:
     """
     Compute A <- A * B.
-    A may have a row-stride. B should be a 1-dimensional array of length m^2,
-    where m is the number of columns of A.
+    A may have a row-stride.
     """
-    cdef:
-        int n = A.shape[0], m = A.shape[1], stride_a = A.strides[0] // sizeof(ZZ)
+    cdef int n = A.shape[0], m = A.shape[1], stride_a = A.strides[0] // sizeof(ZZ)
 
     assert A.strides[1] == sizeof(ZZ), "Array A not C-contiguous"
-    eigen_right_matmul(<ZZ*>&A[0, 0], <const ZZ*>&B[0], n, m, stride_a)
+    assert B.shape[0] == m and B.shape[1] == m, "Dimension mismatch"
+    eigen_right_matmul(<ZZ*>&A[0, 0], <const ZZ*>&B[0, 0], n, m, stride_a)
 
 
 #
