@@ -12,7 +12,7 @@ from matplotlib.animation import ArtistAnimation, PillowWriter
 
 # Local imports
 from ._core import set_debug_flag, set_num_cores, block_lll, block_deep_lll, block_bkz, \
-    ZZ_right_matmul
+    ZZ_left_tr_matmul, ZZ_right_matmul
 from .size_reduction import is_lll_reduced, is_weakly_lll_reduced, size_reduce, seysen_reduce
 from .stats import get_profile, rhf, slope, potential
 
@@ -22,9 +22,9 @@ class TimeProfile:
     Object containing time spent on different parts when running BLASter.
     """
 
-    def __init__(self, use_seysen: bool = False):
+    def __init__(self, use_seysen: bool = False, is_qf: bool = False):
         self._strs = [
-            "QR-decomp.", "LLL-red.", "BKZ-red.",
+            "Cholesky" if is_qf else "QR-decomp.", "LLL-red.", "BKZ-red.",
             "Seysen-red." if use_seysen else "Size-red.", "Matrix-mul."
         ]
         self.num_iterations = 0
@@ -41,8 +41,14 @@ class TimeProfile:
         )
 
 
+def r_factor(basis, is_qf):
+    if is_qf:
+        return np.linalg.cholesky(basis, upper=True)
+    return np.linalg.qr(basis, mode='r')
+
+
 def lll_reduce(B, U, U_seysen, lll_size, delta, depth,
-               tprof, tracers, debug, use_seysen):
+               tprof, tracers, debug, use_seysen, is_qf):
     """
     Perform BLASter's lattice reduction on basis B, and keep track of the transformation in U.
     If `depth` is supplied, use deep insertions up to depth `depth`.
@@ -54,12 +60,12 @@ def lll_reduce(B, U, U_seysen, lll_size, delta, depth,
     while not is_reduced:
         # Step 1: QR-decompose B, and only store the upper-triangular matrix R.
         t1 = perf_counter_ns()
-        R = np.linalg.qr(B, mode='r')
+        R = r_factor(B, is_qf)
 
         # Step 2: Call LLL concurrently on small blocks.
         t2 = perf_counter_ns()
         offset = lll_size // 2 if offset == 0 else 0
-        red_fn(R, B, U, delta, offset, lll_size)  # LLL or deep-LLL
+        red_fn(R, B, U, delta, offset, lll_size, is_qf)  # LLL or deep-LLL
 
         if debug:
             for i in range(offset, n, lll_size):
@@ -70,7 +76,7 @@ def lll_reduce(B, U, U_seysen, lll_size, delta, depth,
         # Step 3: QR-decompose again because LLL "destroys" the QR decomposition.
         # Note: it does not destroy the bxb blocks, but everything above these: yes!
         t3 = perf_counter_ns()
-        R = np.linalg.qr(B, mode='r')
+        R = r_factor(B, is_qf)
 
         # Step 4: Seysen reduce or size reduce the upper-triangular matrix R.
         t4 = perf_counter_ns()
@@ -81,6 +87,8 @@ def lll_reduce(B, U, U_seysen, lll_size, delta, depth,
         t5 = perf_counter_ns()
         ZZ_right_matmul(U, U_seysen)
         ZZ_right_matmul(B, U_seysen)
+        if is_qf:
+            ZZ_left_tr_matmul(U_seysen, B)
 
         # Step 6: Check whether the basis is weakly-LLL reduced.
         t6 = perf_counter_ns()
@@ -96,7 +104,7 @@ def lll_reduce(B, U, U_seysen, lll_size, delta, depth,
 
 
 def bkz_reduce(B, U, U_seysen, lll_size, delta, depth,
-               beta, bkz_tours, bkz_size, tprof, tracers, debug, use_seysen):
+               beta, bkz_tours, bkz_size, tprof, tracers, debug, use_seysen, is_qf):
     """
     Perform BLASter's BKZ reduction on basis B, and keep track of the transformation in U.
     If `depth` is supplied, BLASter's deep-LLL is called in between calls of the SVP oracle.
@@ -105,22 +113,22 @@ def bkz_reduce(B, U, U_seysen, lll_size, delta, depth,
     # BKZ parameters:
     n, tours_done, cur_front = B.shape[1], 0, 0
 
-    lll_reduce(B, U, U_seysen, lll_size, delta, depth, tprof, tracers, debug, use_seysen)
+    lll_reduce(B, U, U_seysen, lll_size, delta, depth, tprof, tracers, debug, use_seysen, is_qf)
 
     while tours_done < bkz_tours:
         # Step 1: QR-decompose B, and only store the upper-triangular matrix R.
         t1 = perf_counter_ns()
-        R = np.linalg.qr(B, mode='r')
+        R = r_factor(B, is_qf)
 
         # Step 2: Call BKZ concurrently on small blocks!
         t2 = perf_counter_ns()
         # norm_before = abs(R[cur_front, cur_front])
-        block_bkz(beta, R, B, U, delta, cur_front % beta, bkz_size)
+        block_bkz(beta, R, B, U, delta, cur_front % beta, bkz_size, is_qf)
 
         # Step 3: QR-decompose again because BKZ "destroys" the QR decomposition.
         # Note: it does not destroy the bxb blocks, but everything above these: yes!
         t3 = perf_counter_ns()
-        R = np.linalg.qr(B, mode='r')
+        R = r_factor(B, is_qf)
         # assert abs(R[cur_front, cur_front]) <= norm_before
 
         # Step 4: Seysen reduce or size reduce the upper-triangular matrix R.
@@ -132,6 +140,8 @@ def bkz_reduce(B, U, U_seysen, lll_size, delta, depth,
         t5 = perf_counter_ns()
         ZZ_right_matmul(U, U_seysen)
         ZZ_right_matmul(B, U_seysen)
+        if is_qf:
+            ZZ_left_tr_matmul(U_seysen, B)
 
         t6 = perf_counter_ns()
 
@@ -152,13 +162,13 @@ def bkz_reduce(B, U, U_seysen, lll_size, delta, depth,
             cur_front += (bkz_size - beta + 1)
 
         # Perform a final LLL reduction at the end
-        lll_reduce(B, U, U_seysen, lll_size, delta, depth, tprof, tracers, debug, use_seysen)
+        lll_reduce(B, U, U_seysen, lll_size, delta, depth, tprof, tracers, debug, use_seysen, is_qf)
 
 
 def reduce(
         B, lll_size: int = 64, delta: float = 0.99, cores: int = 1, debug: bool = False,
         verbose: bool = False, logfile: str = None, anim: str = None, depth: int = 0,
-        use_seysen: bool = False, **kwds
+        use_seysen: bool = False, is_qf: bool = False, **kwds
 ):
     """
     :param B: a basis, consisting of *column vectors*,
@@ -171,6 +181,7 @@ def reduce(
     :param anim: file in which the animation of basis profile as function of iteritions is output,
     :param depth: depth with which to use deep-LLL, or just run plain LLL if =0,
     :param use_seysen: whether to use Seysen's reduction method, or size-reduction otherwise,
+    :param is_qf: whether B is in fact a Quadratic Form (i.e. B^t B), or just basis B otherwise.
     :param kwds: additional arguments for BKZ reduction:
         - beta: maximum block size to use with BKZ reduction,
         - bkz_tours: number of complete tours at highest block size,
@@ -181,8 +192,10 @@ def reduce(
         U: the transformation matrix such that B · U is LLL reduced,
         B · U: an LLL-reduced basis,
         tprof: TimeProfile object.
+
+    If `is_qf`, then instead of B · U, we return U^t · B · U, where B is the input quadratic form.
     """
-    n, tprof = B.shape[1], TimeProfile(use_seysen)
+    n, tprof = B.shape[1], TimeProfile(use_seysen, is_qf)
     lll_size = min(max(2, lll_size), n)
 
     set_num_cores(cores)
@@ -237,7 +250,7 @@ def reduce(
 
     try:
         # LLL reduction
-        lll_reduce(B, U, U_seysen, lll_size, delta, depth, tprof, tracers, debug, use_seysen)
+        lll_reduce(B, U, U_seysen, lll_size, delta, depth, tprof, tracers, debug, use_seysen, is_qf)
 
         if beta:
             # Parse BKZ parameters:
@@ -253,7 +266,7 @@ def reduce(
             for beta_ in betas:
                 tours = bkz_tours if beta_ == beta else 1
                 bkz_reduce(B, U, U_seysen, lll_size, delta, depth, beta_, tours, bkz_size,
-                           tprof, tracers, debug, use_seysen)
+                           tprof, tracers, debug, use_seysen, is_qf)
     except KeyboardInterrupt:
         pass  # When interrupted, give the partially reduced basis.
 

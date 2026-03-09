@@ -10,7 +10,7 @@ from libc.string cimport memcpy
 from openmp cimport omp_set_num_threads, omp_get_num_threads, omp_get_thread_num
 
 from decl cimport FT, ZZ, lll_reduce, deeplll_reduce, bkz_reduce, \
-    eigen_init, eigen_matmul, eigen_left_matmul, eigen_right_matmul
+    eigen_init, eigen_matmul, eigen_left_matmul, eigen_left_tr_matmul, eigen_right_matmul
 
 
 cnp.import_array()  # http://docs.cython.org/en/latest/src/tutorial/numpy.html#adding-types
@@ -38,7 +38,7 @@ def set_num_cores(int num_cores):
 @cython.wraparound(False)
 def block_lll(
         cnp.ndarray[FT, ndim=2] R, cnp.ndarray[ZZ, ndim=2] B_red, cnp.ndarray[ZZ, ndim=2] U,
-        FT delta, int offset, int block_size) -> None:
+        FT delta, int offset, int block_size, bool is_qf) -> None:
     global debug_size_reduction
 
     # Variables
@@ -65,16 +65,15 @@ def block_lll(
         if debug_size_reduction != 0:
             for j in range(w):
                 memcpy(&R[i + j, i], &R_sub[block_id, j * w], w * sizeof(FT));
-
     sig_off()
-    _propagate_update(n, B_red, U, U_sub, num_blocks, offset, block_size)
+    _propagate_update(n, B_red, U, U_sub, num_blocks, offset, block_size, is_qf)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def block_deep_lll(int depth,
         cnp.ndarray[FT, ndim=2] R, cnp.ndarray[ZZ, ndim=2] B_red, cnp.ndarray[ZZ, ndim=2] U,
-        FT delta, int offset, int block_size) -> None:
+        FT delta, int offset, int block_size, bool is_qf) -> None:
     global debug_size_reduction
 
     # Variables
@@ -103,14 +102,14 @@ def block_deep_lll(int depth,
                 memcpy(&R[i + j, i], &R_sub[block_id, j * w], w * sizeof(FT));
 
     sig_off()
-    _propagate_update(n, B_red, U, U_sub, num_blocks, offset, block_size)
+    _propagate_update(n, B_red, U, U_sub, num_blocks, offset, block_size, is_qf)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def block_bkz(int beta,
         cnp.ndarray[FT, ndim=2] R, cnp.ndarray[ZZ, ndim=2] B_red, cnp.ndarray[ZZ, ndim=2] U,
-        FT delta, int offset, int block_size) -> None:
+        FT delta, int offset, int block_size, bool is_qf) -> None:
     global debug_size_reduction
 
     # Variables
@@ -139,13 +138,13 @@ def block_bkz(int beta,
                 memcpy(&R[i + j, i], &R_sub[block_id, j * w], w * sizeof(FT));
 
     sig_off()
-    _propagate_update(n, B_red, U, U_sub, num_blocks, offset, block_size)
+    _propagate_update(n, B_red, U, U_sub, num_blocks, offset, block_size, is_qf)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def _propagate_update(Py_ssize_t n, cnp.ndarray[ZZ, ndim=2] B_red, cnp.ndarray[ZZ, ndim=2] U,
-        const ZZ[:, ::1] U_sub, int num_blocks, int offset, int block_size) -> None:
+        const ZZ[:, ::1] U_sub, int num_blocks, int offset, int block_size, bool is_qf) -> None:
     cdef int i, w, block_id
 
     # Step 2: Update U and B_red locally by multiplying with U_sub[block_id].
@@ -155,6 +154,15 @@ def _propagate_update(Py_ssize_t n, cnp.ndarray[ZZ, ndim=2] B_red, cnp.ndarray[Z
 
         ZZ_right_matmul_strided(U[:, i:i+w], <const ZZ[:w, :w]>&U_sub[block_id, 0])
         ZZ_right_matmul_strided(B_red[:, i:i+w], <const ZZ[:w, :w]>&U_sub[block_id, 0])
+
+    # Step 3: (optional) also update Q on the left if B_red = Q is a quadratic form.
+    if is_qf:
+        for block_id in range(num_blocks):
+            i = offset + block_size * block_id
+            w = min(n - i, block_size)
+            ZZ_left_tr_matmul(<ZZ[:w, :w]>&U_sub[block_id, 0], B_red[i:i+w, :])
+        # The function has updated the quadratic form Q = B_red, as follows:
+        #     Q = U_sub^T Q U_sub.
 
 
 #
@@ -172,6 +180,19 @@ def ZZ_matmul(const ZZ[:, ::1] A, const ZZ[:, ::1] B) -> cnp.ndarray[ZZ]:
     assert B.shape[0] == m, "Dimension mismatch"
     eigen_matmul(<const ZZ*>&A[0, 0], <const ZZ*>&B[0, 0], &C[0, 0], n, m, k)
     return np.asarray(C)
+
+
+def ZZ_left_tr_matmul(const ZZ[:, ::1] A, ZZ[:, ::1] B) -> None:
+    """
+    Compute B <- A^tr * B.
+    A and B should be C-contiguous.
+    """
+    cdef int n = B.shape[0], m = B.shape[1]
+
+    assert A.strides[1] == sizeof(ZZ), "Array A not C-contiguous"
+    assert B.strides[1] == sizeof(ZZ), "Array B not C-contiguous"
+    assert A.shape[0] == n and A.shape[1] == n, "Dimension mismatch"
+    eigen_left_tr_matmul(<const ZZ*>&A[0, 0], <ZZ*>&B[0, 0], n, m)
 
 
 def ZZ_left_matmul_strided(const ZZ[:, :] A, ZZ[:, :] B) -> None:

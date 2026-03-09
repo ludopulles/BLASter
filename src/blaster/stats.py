@@ -5,14 +5,15 @@ from math import exp, gamma, log2, pi
 import numpy as np
 
 
-def get_profile(basis, is_upper=False):
+def get_profile(basis, is_upper=False, is_qf=False):
     """
     Return the profile of a basis, i.e. log_2 ||b_i*|| for i=1, ..., n.
     Note: the logarithm is done base 2, similar to https://github.com/keeganryan/flatter.
     :param basis: basis for a lattice
     :param is_upper: whether `basis` is already an upper triangular matrix or not
     """
-    upper = basis if is_upper else np.linalg.qr(basis, mode='r')
+    upper = basis if is_upper else (np.linalg.cholesky(basis, upper=True) if is_qf else
+                                    np.linalg.qr(basis, mode='r'))
     return [log2(abs(d_i)) for d_i in upper.diagonal()]
 
 
