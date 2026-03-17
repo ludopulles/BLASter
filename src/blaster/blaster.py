@@ -11,10 +11,9 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import ArtistAnimation, PillowWriter
 
 # Local imports
-from blaster_core import \
-    set_debug_flag, set_num_cores, block_lll, block_deep_lll, block_bkz, ZZ_right_matmul
-from size_reduction import is_lll_reduced, is_weakly_lll_reduced, size_reduce, seysen_reduce
-from stats import get_profile, rhf, slope, potential
+from ._core import set_debug_flag, set_num_cores, block_lll, block_deep_lll, block_bkz, ZZ_right_matmul
+from .size_reduction import is_lll_reduced, is_weakly_lll_reduced, size_reduce, seysen_reduce
+from .stats import get_profile, rhf, slope, potential
 
 
 class TimeProfile:
@@ -226,7 +225,7 @@ def reduce(
         if not beta:
             lll_reduce(B, U, U_seysen, lll_size, delta, depth, tprof, tracers, debug, use_seysen)
         elif beta < 40:
-            lll_reduce(B, U, U_seysen, lll_size, delta, 4, tprof, tracers, debug, use_seysen)  # depth is 4 
+            lll_reduce(B, U, U_seysen, lll_size, delta, 4, tprof, tracers, debug, use_seysen)  # depth is 4
         else:
             # Parse BKZ parameters:
             bkz_tours = kwds.get("bkz_tours") or 1

@@ -13,7 +13,7 @@ all: cython
 
 clean:
 	$(PYTHON) setup.py clean
-	rm -rf build cysignals_crash_logs
+	rm -rf build cysignals_crash_logs src/blaster.egg-info src/blaster/__pycache__ src/blaster/_core*.so
 
 # Run
 cython:

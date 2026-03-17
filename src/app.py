@@ -11,9 +11,9 @@ from math import log2, ceil
 import numpy as np
 
 # Local imports
-from lattice_io import read_qary_lattice, write_lattice
-from blaster import reduce
-from stats import gaussian_heuristic, rhf, slope, get_profile
+from blaster.lattice_io import read_qary_lattice, write_lattice
+from blaster.blaster import reduce
+from blaster.stats import gaussian_heuristic, rhf, slope, get_profile
 
 
 def __main__():

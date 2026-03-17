@@ -38,9 +38,13 @@ Optional:
 
 ## Building
 
+One can either build the software locally as follows:
+
 1. (optional) Run `make eigen3` to install the Eigen (version 3.4.0) in a subdirectory.
 2. (optional) Run `make venv` to create a local virtual environment and install the required python3 modules.
 3. Run `make` to compile all the Cython files in `core/`.
+
+Instead of step 2 & 3, running `pip install .` will install the software as the package `blaster` in the used Python environment.
 
 ## Debugging
 
@@ -52,7 +56,7 @@ Optional:
 
 ## Running
 
-*Note: you first need to build the software, see [above](#building).*
+*Note: you first need to build the software, see [above](#Building).*
 
 You can run the software from the command line by executing the script `src/app.py`.
 For example, `./python3 src/app.py -pvi INPUTFILE` LLL-reduces a lattice in file `INPUTFILE` and outputs it to standard output, and provides additional information to standard error.

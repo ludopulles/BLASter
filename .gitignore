@@ -1,5 +1,6 @@
 # Python cache
 __pycache__
+*.egg-info
 
 # Shared libraries
 *.so

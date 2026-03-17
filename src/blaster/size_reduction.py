@@ -8,7 +8,7 @@ from functools import cache
 import numpy as np
 
 # Local imports
-from blaster_core import ZZ_left_matmul_strided, FT_matmul
+from ._core import ZZ_left_matmul_strided, FT_matmul
 
 
 # Reduction properties:

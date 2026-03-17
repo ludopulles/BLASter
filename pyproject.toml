@@ -1,0 +1,8 @@
+[build-system]
+requires = ["setuptools", "cython", "numpy", "cysignals"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "blaster"
+version = "1.0"
+description = "Fast floating point LLL-reduction"

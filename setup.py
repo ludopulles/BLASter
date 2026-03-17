@@ -49,7 +49,7 @@ else:
     ]
 
 extensions = [Extension(
-    name="blaster_core",
+    name="blaster._core",
     sources=["core/blaster.pyx"],
     include_dirs=include_dirs,
     extra_compile_args=compile_args,
