@@ -301,7 +301,7 @@ void svp(const int N, FT *R, ZZ *U, const FT delta, int i, int w, ZZ *sol)
  *
  * @param R upper-triangular matrix representing the R-factor from QR decomposing the basis.
  * @param U transformation matrix, that was applied to R to deep-LLL-reduce it.
- * @param beta blocksize used for BKZ (dimension of SVP oracle that uses enumeration).
+ * @param beta block size used for BKZ (dimension of SVP oracle that uses enumeration).
  *
  * Complexity: poly(N) * beta^{c_BKZ beta} for a fixed delta < 1, where c_BKZ ~ 0.125 in [1].
  * [1] https://doi.org/10.1007/978-3-030-56880-1_7

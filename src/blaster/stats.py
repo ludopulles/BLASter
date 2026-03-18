@@ -18,29 +18,28 @@ def get_profile(basis, is_upper=False):
 
 def gh(dim):
     """
-    Return the Gaussian Heuristic at dimension n. This gives a prediction of
+    Return the Gaussian Heuristic at dimension `dim`. This gives a prediction of
     the length of the shortest vector in a lattice of unit volume.
-    :param n: lattice dimension
-    :return: GH(n)
+    :param dim: lattice dimension
+    :return: GH(dim)
     """
     if dim >= 100:
         return float(dim / (2*pi*exp(1)))**0.5
     return float(gamma(1.0 + 0.5 * dim)**(1.0 / dim) / pi**0.5)
 
 
-def gaussian_heuristic(basis):
+def gaussian_heuristic(profile):
     """
-    Return the Gaussian Heuristic for a particular basis.
+    Return the Gaussian Heuristic for a particular basis profile.
     """
-    rank = basis.shape[1]
-    return gh(rank) * 2.0**(sum(get_profile(basis)) / rank)
+    n = len(profile)
+    return gh(n) * 2.0**(sum(profile) / n)
 
 
 def rhf(profile):
     """
-    Return the n-th root Hermite factor, given the profile of some basis, i.e.
+    Return the n-th root Hermite factor, given a basis profile, i.e.,
         rhf(B) = (||b_0|| / det(B)^{1/n})^{1/n}.
-    :param profile: profile belonging to some basis of some lattice
     """
     n = len(profile)
     return 2.0**((profile[0] - sum(profile) / n) / n)
@@ -48,7 +47,7 @@ def rhf(profile):
 
 def slope(profile):
     """
-    Return the current slope of a profile
+    Return the current slope of a basis profile
     """
     n = len(profile)
     i_mean = (n - 1) * 0.5

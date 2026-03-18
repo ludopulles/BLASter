@@ -13,12 +13,12 @@ cdef extern from "lattice_reduction.cpp" nogil:
 cdef extern from "eigen_matmul.cpp" nogil:
     void eigen_init(int num_cores)
 
-	# c = a * b
+    # c = a * b
     void eigen_matmul(const ZZ *a, const ZZ *b, ZZ *c, int n, int m, int k)
 
-	# b = a * b
+    # b = a * b
     void eigen_left_matmul(const ZZ *a, ZZ *b, int n, int m, int stride_a, int stride_b)
 
-	# a = a * b
+    # a = a * b
     void eigen_right_matmul(ZZ *a, const ZZ *b, int n, int m)
     void eigen_right_matmul(ZZ *a, const ZZ *b, int n, int m, int stride_a)

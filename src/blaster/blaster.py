@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import ArtistAnimation, PillowWriter
 
 # Local imports
-from ._core import set_debug_flag, set_num_cores, block_lll, block_deep_lll, block_bkz, ZZ_right_matmul
+from ._core import set_debug_flag, set_num_cores, block_lll, block_deep_lll, block_bkz, \
+    ZZ_right_matmul
 from .size_reduction import is_lll_reduced, is_weakly_lll_reduced, size_reduce, seysen_reduce
 from .stats import get_profile, rhf, slope, potential
 
@@ -24,7 +25,7 @@ class TimeProfile:
     def __init__(self, use_seysen: bool = False):
         self._strs = [
             "QR-decomp.", "LLL-red.", "BKZ-red.",
-            "Seysen-red." if use_seysen else "Size-red.  ", "Matrix-mul."
+            "Seysen-red." if use_seysen else "Size-red.", "Matrix-mul."
         ]
         self.num_iterations = 0
         self.times = [0] * 5
@@ -157,16 +158,24 @@ def bkz_reduce(B, U, U_seysen, lll_size, delta, depth,
 def reduce(
         B, lll_size: int = 64, delta: float = 0.99, cores: int = 1, debug: bool = False,
         verbose: bool = False, logfile: str = None, anim: str = None, depth: int = 0,
-        use_seysen: bool = False,
-        **kwds
+        use_seysen: bool = False, **kwds
 ):
     """
-    :param B: a basis, consisting of *column vectors*.
+    :param B: a basis, consisting of *column vectors*,
+    :param lll_size: size of the local LLL-reduction segments,
     :param delta: delta factor for Lagrange reduction,
-    :param cores: number of cores to use, and
-    :param lll_size: the block-size for LLL, and
-    :param debug: whether or not to debug and print more output on time consumption.
-    :param kwds: additional arguments (for BKZ reduction).
+    :param cores: number of cores to use,
+    :param debug: debug and print more output on time consumption,
+    :param verbose: print all LLL iterations & all BKZ SVP-calls,
+    :param logfile: file in which the basis quality is reported for every iteration,
+    :param anim: file in which the animation of basis profile as function of iteritions is output,
+    :param depth: depth with which to use deep-LLL, or just run plain LLL if =0,
+    :param use_seysen: whether to use Seysen's reduction method, or size-reduction otherwise,
+    :param kwds: additional arguments for BKZ reduction:
+        - beta: maximum block size to use with BKZ reduction,
+        - bkz_tours: number of complete tours at highest block size,
+        - bkz_size: size of local BKZ-reduction segments, default: equal to `lll_size`,
+        - bkz_prog: block size increments.
 
     :return: tuple (U, B · U, tprof) where:
         U: the transformation matrix such that B · U is LLL reduced,
@@ -221,28 +230,29 @@ def reduce(
     U_seysen = np.identity(n, dtype=np.int64)
 
     beta = kwds.get("beta")
+    if beta and not depth:
+        # In the literature on BKZ, it is recommended to LLL-reduce the basis, before calling the
+        # SVP oracle in BKZ. Actually, deep-LLL-reduction is even better in this case.
+        depth = 4
+
     try:
-        if not beta:
-            lll_reduce(B, U, U_seysen, lll_size, delta, depth, tprof, tracers, debug, use_seysen)
-        elif beta < 40:
-            lll_reduce(B, U, U_seysen, lll_size, delta, 4, tprof, tracers, debug, use_seysen)  # depth is 4
-        else:
+        # LLL reduction
+        lll_reduce(B, U, U_seysen, lll_size, delta, depth, tprof, tracers, debug, use_seysen)
+
+        if beta:
             # Parse BKZ parameters:
             bkz_tours = kwds.get("bkz_tours") or 1
             bkz_size = kwds.get("bkz_size") or lll_size
-            bkz_prog = kwds.get("bkz_prog") or beta
+            bkz_prog = kwds.get("bkz_prog") or beta  # only use block size `beta` if not given.
 
             # Progressive-BKZ: start running BKZ-beta' for some `beta' >= 40`,
-            # then increase the blocksize beta' by `bkz_prog` and run BKZ-beta' again,
-            # and repeat this until `beta' = beta`.
+            # then increase the block size beta' by `bkz_prog` and run BKZ-beta' again,
+            # and repeat this until `beta' = beta`. If `beta < 40`, we only run deep-LLL.
             betas = range(40 + ((beta - 40) % bkz_prog), beta + 1, bkz_prog)
 
-            # In the literature on BKZ, it is usual to run LLL before calling the SVP oracle in BKZ.
-            # However, it is actually better to preprocess the basis with 4-deep-LLL instead of LLL,
-            # before calling the SVP oracle.
             for beta_ in betas:
-                bkz_reduce(B, U, U_seysen, lll_size, delta, 4, beta_,
-                           bkz_tours if beta_ == beta else 1, bkz_size,
+                tours = bkz_tours if beta_ == beta else 1
+                bkz_reduce(B, U, U_seysen, lll_size, delta, depth, beta_, tours, bkz_size,
                            tprof, tracers, debug, use_seysen)
     except KeyboardInterrupt:
         pass  # When interrupted, give the partially reduced basis.

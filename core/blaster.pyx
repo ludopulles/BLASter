@@ -200,7 +200,7 @@ def ZZ_right_matmul(ZZ[:, ::1] A, const ZZ[:, ::1] B) -> None:
     eigen_right_matmul(<ZZ*>&A[0, 0], <const ZZ*>&B[0, 0], n, m)
 
 
-def ZZ_right_matmul_strided(ZZ[:, :] A, const ZZ[:, :] B) -> None:
+def ZZ_right_matmul_strided(ZZ[:, :] A, const ZZ[:, ::1] B) -> None:
     """
     Compute A <- A * B.
     A may have a row-stride.
