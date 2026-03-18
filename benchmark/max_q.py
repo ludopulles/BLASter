@@ -66,7 +66,7 @@ def count_successes(m, lgq, path):
             wt.append(result)
 
     # Report times
-    mint, avgt, maxt = (min(wt), sum(wt)/len(wt), max(wt)) if wt else (0,0,0)
+    mint, avgt, maxt = (min(wt), sum(wt)/len(wt), max(wt)) if wt else (0, 0, 0)
     print(f"{m:4d},{lgq:2d},{len(wt):2d},{mint:6.2f},{avgt:6.2f},{maxt:6.2f}", flush=True)
 
     # Return number of successes

@@ -24,7 +24,7 @@ def parse_time_usage(time_output):
 
 # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
 def time_run_and_timeout(cmd):
-    timeout = 300 # 5 minutes
+    timeout = 300  # 5 minutes
 
     # The os.setsid() is passed in the argument preexec_fn so
     # it's run after the fork() and before  exec() to run the shell.
@@ -32,7 +32,7 @@ def time_run_and_timeout(cmd):
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
         try:
             stdout, stderr = process.communicate(None, timeout=timeout)
-        except subprocess.TimeoutExpired as exc:
+        except subprocess.TimeoutExpired:
             process.kill()
             os.killpg(os.getpgid(process.pid), signal.SIGTERM)
             # Send the signal to all the process groups
@@ -73,7 +73,7 @@ def run_blaster(m, q, seed, LLLsize):
     return run_command(f"{cmd_blaster} -i {path} -l {logfile} -L {LLLsize}")
 
 
-def run_blaster_deeplll(m, q, seed, depth):
+def run_blaster_deeplll(m, q, seed, LLLsize, depth):
     logfile = f"../logs/optimal_segment_size/deeplll{depth}_{m}_{q}_{seed}_{LLLsize}.csv"
     path = f"../input/{m}_{q}_{seed}"
     return run_command(f"{cmd_blaster} -i {path} -l {logfile} -L {LLLsize} -d{depth}")
@@ -84,7 +84,8 @@ def __main__():
     print("m,q,LLLsize,seed,real,user,sys", flush=True)
     for (m, q) in mqs:
         for LLLsize in range(32, 130, 2):
-            if (m < 512
+            if (
+                m < 512
                 or (m == 512 and LLLsize not in [92, 94, 98, 104])
                 or (m == 1024 and LLLsize not in [76, 86, 90, 104, 106, 108, 110])
             ):

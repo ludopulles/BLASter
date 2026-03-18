@@ -1,14 +1,11 @@
 #!/usr/bin/python3
-from math import ceil
-from multiprocessing import cpu_count
 import subprocess
 import sys
 from time import time
 
-from flatter_conversion import convert_logfiles
-from blaster.lattice_io import read_qary_lattice
+from blaster import reduce
+from blaster.IO import read_qary_lattice
 from blaster.stats import get_profile, rhf, slope
-from blaster.blaster import reduce
 
 
 def is_prime(x):
@@ -44,7 +41,6 @@ def parse_time_usage(time_output):
 
 
 def output_data(data):
-    global output_file
     print(','.join(str(v) for k, v in data.items()), file=output_file)
     print(','.join(str(v) for k, v in data.items()))
 
@@ -53,7 +49,9 @@ def run_command(cmd, instance, env=None):
     # print(f"Executing \"time {cmd}\".", flush=True)
     if not env:
         env = ""
-    result = subprocess.run(f"{env} /usr/bin/time -f \"%e %U %S\" {cmd}", text=True, shell=True, capture_output=True)
+    result = subprocess.run(
+        f"{env} /usr/bin/time -f \"%e %U %S\" {cmd}", text=True, shell=True, capture_output=True
+    )
     if result.returncode != 0:
         print("ERROR WHILE EXECUTING COMMAND!")
         print(result.stderr)
@@ -70,9 +68,6 @@ def exec_blaster(inputfile, depth, instance):
     # Read lattice
     B = read_qary_lattice(inputfile)
 
-    # Based on src/app.py:
-    cores = max(1, min(ceil(B.shape[1] / 64), cpu_count() // 2))
-
     # Run lattice reduction
     U, B_red, tprof = reduce(B, depth=depth)
 
@@ -80,6 +75,7 @@ def exec_blaster(inputfile, depth, instance):
     prof = get_profile(B_red)
     data = instance | {'slope': f"{slope(prof):.6f}", 'rhf': f"{rhf(prof):.5f}"}
     output_data(data | {'real': (T1 - T0), 'user': '0', 'sys': 0})
+
 
 def gen_lattice(m, q, seed, path):
     n = m//2
@@ -103,7 +99,7 @@ def run_flatter(m, q, seed, path, num_threads):
 
 def run_fplll(m, q, seed, path):
     cmd = f"~/.local/bin/fplll {path} > {lattice_output}"
-    run_command(cmd, {'m': m, 'q': q, 'seed': seed, 'type': f'fpLLL'})
+    run_command(cmd, {'m': m, 'q': q, 'seed': seed, 'type': 'fpLLL'})
 
 
 def run_KEF21(m, q, seed, path, num_threads):
@@ -112,7 +108,7 @@ def run_KEF21(m, q, seed, path, num_threads):
 
 
 def __main__():
-    global mqs, output_file
+    global output_file
 
     output_file = open("./small-dimension.csv", mode='w', encoding="utf8")
     print("m,q,seed,type,slope,rhf,real (s),user (s),sys (s)", file=output_file)
@@ -160,7 +156,8 @@ def __main__():
         commands_executed += 1
 
     if commands_executed == 0:
-        print(f"Usage: {sys.argv[0]} [lattices|lll|deeplll `depth`|flatter `num_threads`]|fplll|KEF21")
+        print(f"Usage: {sys.argv[0]} "
+              f"[lattices|lll|deeplll `depth`|flatter `num_threads`|fplll|KEF21 `num_threads`]")
 
     output_file.close()
 

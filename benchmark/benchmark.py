@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 from flatter_conversion import convert_logfiles
-from blaster.lattice_io import read_qary_lattice
+from blaster.IO import read_qary_lattice
 from blaster.stats import get_profile, rhf, slope
 
 
@@ -27,6 +27,7 @@ def is_float(x):
     except:
         return False
     return True
+
 
 def parse_time_usage(time_output):
     times = time_output.strip().split(" ")
@@ -94,7 +95,7 @@ def run_fplll(m, q, seed, path):
     t = run_command(cmd, capture_time=True)
     prof = get_profile(read_qary_lattice(temp_lat))
     data = {
-        'seed': seed,'type': f"fpLLL",
+        'seed': seed, 'type': "fpLLL",
         'slope': f"{slope(prof):.6f}", 'rhf': f"{rhf(prof):.5f}"
     }
     print(','.join(str(v) for k, v in (data | t).items()), file=other_logs[m], flush=True)
@@ -106,17 +107,14 @@ def run_KEF21(m, q, seed, path, num_threads):
     t = run_command(cmd, capture_time=True)
     prof = get_profile(read_qary_lattice(temp_lat))
     data = {
-        'seed': seed,'type': f"KEF21 ({num_threads} threads)",
+        'seed': seed, 'type': f"KEF21 ({num_threads} threads)",
         'slope': f"{slope(prof):.6f}", 'rhf': f"{rhf(prof):.5f}"
     }
     print(','.join(str(v) for k, v in (data | t).items()), file=other_logs[m], flush=True)
 
 
 def __main__():
-    global mqs
-
     lattices = [(m, q, seed, f"../input/{m}_{q}_{seed}") for (m, q) in mqs for seed in seeds]
-
 
     for f in other_logs.values():
         print("seed,type,slope,rhf,real (s),user (s),sys (s)", file=f, flush=True)
@@ -174,6 +172,7 @@ def __main__():
     if not has_cmd:
         print(f"Usage: {sys.argv[0]} [dim d|lattices|lll|deeplll `depth`|"
               f"pbkz `beta`|flatter `num_threads`]")
+
 
 if __name__ == "__main__":
     __main__()
