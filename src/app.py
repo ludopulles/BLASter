@@ -78,7 +78,6 @@ def __main__():
     # Perform sanity checks
     assert 0.25 < args.delta and args.delta < 1.0, 'Invalid value for delta!'
     assert args.lll_size >= 2, 'LLL block size must be at least 2!'
-    assert not args.depth or not args.beta, 'Cannot run combination of deep-LLL and BKZ!'
 
     # Read the basis from input (file)
     B = read_qary_lattice(args.input)

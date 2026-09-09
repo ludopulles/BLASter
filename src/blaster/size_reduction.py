@@ -31,13 +31,14 @@ def is_weakly_lll_reduced(R, delta=.99):
     return True
 
 
-def is_size_reduced(R):
+def is_size_reduced(R, eta=0.500001):
     """
     Return whether R is size-reduced.
     :param R: upper-triangular matrix
+    :param eta: float in (1/2, 1) allowing small floating point errors in the definition, see fpLLL
     :return: bool
     """
-    return all(max(abs(R[i, i + 1:])) <= abs(R[i, i]) / 2 for i in range(len(R) - 1))
+    return all(max(abs(R[i, i + 1:])) <= abs(R[i, i]) * eta for i in range(len(R) - 1))
 
 
 def is_lll_reduced(R, delta=.99):
