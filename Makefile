@@ -28,7 +28,7 @@ cython-gdb:
 ### Rules to install Eigen C++ template library for linear algebra locally
 
 # Default version of Eigen C++ template library for linear algebra
-EIGEN_VERSION := 3.4.0
+EIGEN_VERSION := 5.0.0
 
 eigen3:
 	$(MAKE) eigen-$(EIGEN_VERSION)

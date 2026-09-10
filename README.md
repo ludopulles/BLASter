@@ -40,7 +40,7 @@ Optional:
 
 One can either build the software locally as follows:
 
-1. (optional) Run `make eigen3` to install the Eigen (version 3.4.0) in a subdirectory.
+1. (optional) Run `make eigen3` to install the Eigen3 library (version 5.0.0) in a subdirectory.
 2. (optional) Run `make venv` to create a local virtual environment and install the required python3 modules.
 3. Run `make` to compile all the Cython files in `core/`.
 
